@@ -1,11 +1,19 @@
-**Reed edit:** I want to log everything, on every thread.
+**Reed edit:** I want to log everything, on every thread. With timestamps.
 
-There's only one thing you need to do:
+Here's the new API:
 
 ```objc
 lib = dlopen("/usr/lib/libinspectivec.dylib", RTLD_NOW);
 InspectiveC_setEnabled = @encode(void (BOOL))(dlsym(lib, "InspectiveC_setEnabled"));
 ```
+
+Example output:
+
+```
+11.1 -|__NSCFNumber@<0xab2b57865b808e4b> integerValue|
+```
+
+The `11.1` is the number of seconds since the lib was `dlopen`ed.
 
 InspectiveC
 ======

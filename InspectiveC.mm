@@ -60,6 +60,9 @@ static void performBlockOnProperThread(void (^block)(void)) {
 }
 #endif
 
+// Keep track of time when comparing between threads
+static int deciSecondsSinceStart = 0;
+
 // The original objc_msgSend.
 static id (*orig_objc_msgSend)(id, SEL, ...) = NULL;
 
@@ -411,17 +414,21 @@ static inline void logWithArgs(ThreadCallStack *cs, FILE *file, id obj, SEL _cmd
     const char *metaClassFormatStr;
 
     if (isWatchHit) {
-      normalFormatStr = "%s%s***-|%s@<%p> %s|";
-      metaClassFormatStr = "%s%s***+|%s %s|";
+      normalFormatStr = "%s%s%.1f ***-|%s@<%p> %s|";
+      metaClassFormatStr = "%s%s%.1f ***+|%s %s|";
     } else {
-      normalFormatStr = "%s%s-|%s@<%p> %s|";
-      metaClassFormatStr = "%s%s+|%s %s|";
+      normalFormatStr = "%s%s%.1f -|%s@<%p> %s|";
+      metaClassFormatStr = "%s%s%.1f +|%s %s|";
     }
 
+    RLOCK;
+    float time = deciSecondsSinceStart/10.0;
+    UNLOCK;
+
     if (isMetaClass) {
-      fprintf(file, metaClassFormatStr, spaces, spaces, class_getName(kind), sel_getName(_cmd));
+      fprintf(file, metaClassFormatStr, spaces, spaces, time, class_getName(kind), sel_getName(_cmd));
     } else {
-      fprintf(file, normalFormatStr, spaces, spaces, class_getName(kind), (void *)obj, sel_getName(_cmd));
+      fprintf(file, normalFormatStr, spaces, spaces, time, class_getName(kind), (void *)obj, sel_getName(_cmd));
     }
     const char *typeEncoding = method_getTypeEncoding(method);
     if (!typeEncoding || classSupportsArbitraryPointerTypes(kind)) {
@@ -596,9 +603,22 @@ static void hook() {
 }
 #endif
 
+void * start_timer(void *udata) {
+    while(true ) {
+        WLOCK;
+        deciSecondsSinceStart++;
+        UNLOCK;
+        usleep(100000);
+    }
+    return NULL;
+}
+
 __attribute__((constructor))
 static void localConstructor() {
   pthread_key_create(&threadKey, &destroyThreadCallStack);
+
+  pthread_t timer_thread;
+  pthread_create(&timer_thread, NULL, start_timer, NULL);
 
   NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
   NSString *path = (paths.count > 0) ? [paths objectAtIndex:0] : nil;

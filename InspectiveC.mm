@@ -15,7 +15,7 @@
 #include "logging.h"
 
 // Optional - comment this out if you want to log on ALL threads (laggy due to rw-locks).
-#define MAIN_THREAD_ONLY
+// #define MAIN_THREAD_ONLY
 
 #define MAX_PATH_LENGTH 1024
 
@@ -161,6 +161,13 @@ static inline void selectorSetRemoveSelector(HashMapRef selectorSet, SEL _cmd) {
 }
 
 // Inspective C Public API.
+
+BOOL InspectiveC_enabled = false;
+extern "C" void InspectiveC_setEnabled(BOOL enabled) {
+    WLOCK;
+    InspectiveC_enabled = enabled;
+    UNLOCK;
+}
 
 extern "C" void InspectiveC_setMaximumRelativeLoggingDepth(int depth) {
   if (depth >= 0) {
@@ -330,7 +337,7 @@ static inline ThreadCallStack * getThreadCallStack() {
     cs->file = newFileForThread();
 #endif
     cs->isLoggingEnabled = (cs->file != NULL);
-    cs->isCompleteLoggingEnabled = 0;
+    cs->isCompleteLoggingEnabled = 1;
     cs->spacesStr = (char *)malloc(DEFAULT_CALLSTACK_DEPTH + 1);
     memset(cs->spacesStr, ' ', DEFAULT_CALLSTACK_DEPTH);
     cs->spacesStr[DEFAULT_CALLSTACK_DEPTH] = '\0';
@@ -533,12 +540,18 @@ static inline void preObjc_msgSend_common(id self, uintptr_t lr, SEL _cmd, Threa
     BOOL isWatchedObject = selectorSetContainsSelector((HashMapRef)HMGet(objectsMap, (void *)self), _cmd);
     BOOL isWatchedClass = selectorSetContainsSelector((HashMapRef)HMGet(classMap, (void *)clazz), _cmd);
     BOOL isWatchedSel = (HMGet(selsSet, (void *)_cmd) != NULL);
+    BOOL enabled = InspectiveC_enabled;
     UNLOCK;
     if (isWatchedObject && _cmd == @selector(dealloc)) {
       WLOCK;
       mapDestroySelectorSet(objectsMap, self);
       UNLOCK;
     }
+
+    if(!enabled) {
+      return;
+    }
+
     if (isWatchedObject || isWatchedClass || isWatchedSel) {
       onWatchHit(cs, args);
     } else if (cs->numWatchHits > 0 || cs->isCompleteLoggingEnabled) {

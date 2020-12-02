@@ -1,3 +1,12 @@
+**Reed edit:** I want to log everything, on every thread.
+
+There's only one thing you need to do:
+
+```objc
+lib = dlopen("/usr/lib/libinspectivec.dylib", RTLD_NOW);
+InspectiveC_setEnabled = @encode(void (BOOL))(dlsym(lib, "InspectiveC_setEnabled"));
+```
+
 InspectiveC
 ======
 

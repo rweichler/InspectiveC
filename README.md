@@ -10,10 +10,10 @@ InspectiveC_setEnabled = @encode(void (BOOL))(dlsym(lib, "InspectiveC_setEnabled
 Example output:
 
 ```
-11.1 -|__NSCFNumber@<0xab2b57865b808e4b> integerValue|
+11.03 -|__NSCFNumber@<0xab2b57865b808e4b> integerValue|
 ```
 
-The `11.1` is the number of seconds since the lib was `dlopen`ed.
+The `11.03` is the number of seconds since the lib was `dlopen`ed.
 
 InspectiveC
 ======

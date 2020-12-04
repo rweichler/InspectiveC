@@ -17,6 +17,9 @@
 // Optional - comment this out if you want to log on ALL threads (laggy due to rw-locks).
 // #define MAIN_THREAD_ONLY
 
+// 100x per second
+#define TIMER_PRECISION 100
+
 #define MAX_PATH_LENGTH 1024
 
 #define DEFAULT_CALLSTACK_DEPTH 128
@@ -414,15 +417,15 @@ static inline void logWithArgs(ThreadCallStack *cs, FILE *file, id obj, SEL _cmd
     const char *metaClassFormatStr;
 
     if (isWatchHit) {
-      normalFormatStr = "%s%s%.1f ***-|%s@<%p> %s|";
-      metaClassFormatStr = "%s%s%.1f ***+|%s %s|";
+      normalFormatStr = "%s%s%.2f ***-|%s@<%p> %s|";
+      metaClassFormatStr = "%s%s%.2f ***+|%s %s|";
     } else {
-      normalFormatStr = "%s%s%.1f -|%s@<%p> %s|";
-      metaClassFormatStr = "%s%s%.1f +|%s %s|";
+      normalFormatStr = "%s%s%.2f -|%s@<%p> %s|";
+      metaClassFormatStr = "%s%s%.2f +|%s %s|";
     }
 
     RLOCK;
-    float time = deciSecondsSinceStart/10.0;
+    float time = deciSecondsSinceStart*1.0/TIMER_PRECISION;
     UNLOCK;
 
     if (isMetaClass) {
@@ -608,7 +611,7 @@ void * start_timer(void *udata) {
         WLOCK;
         deciSecondsSinceStart++;
         UNLOCK;
-        usleep(100000);
+        usleep(1000000 / TIMER_PRECISION);
     }
     return NULL;
 }
